@@ -11,7 +11,7 @@
 
 | Модель | Ссылка на магазин |
 |---|---|
-| <p></p> <img src="https://wiki.iarduino.ru/img/resources/1312/1312.svg" width="100px"></img>| https://iarduino.ru/shop/Expansion-payments/dzhoystik-i2c---flash-trema-modul.html |
+| <p></p> <img src="https://wiki.iarduino.ru/img/resources/1312/1312.svg" width="100px"></img>| https://iarduino.ru/shop/Displei/chetyrehrazryadnyy-indikator-led-krasnyy-flash-i2c-trema-modul.html |
 
 ## Назначение функций:
 

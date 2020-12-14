@@ -1,8 +1,8 @@
 [![](https://iarduino.ru/img/logo.svg)](https://iarduino.ru)[![](https://wiki.iarduino.ru/img/git-shop.svg?3)](https://iarduino.ru) [![](https://wiki.iarduino.ru/img/git-wiki.svg?2)](https://wiki.iarduino.ru) [![](https://wiki.iarduino.ru/img/git-lesson.svg?2)](https://lesson.iarduino.ru)[![](https://wiki.iarduino.ru/img/git-forum.svg?2)](http://forum.trema.ru)
 
-**This is a library for Arduino IDE. It allows to work with [4LED](https://iarduino.ru/shop/Expansion-payments/dzhoystik-i2c---flash-trema-modul.html) module made by iArduino.ru**
+**This is a library for Arduino IDE. It allows to work with [Trema-module 4-Digit display Flash-i2C](https://iarduino.ru/shop/Displei/chetyrehrazryadnyy-indikator-led-krasnyy-flash-i2c-trema-modul.html) module made by iArduino.ru**
 
-**Данная библиотека для Arduino IDE позволяет работать с модулем [Джойстик](https://iarduino.ru/shop/Expansion-payments/dzhoystik-i2c---flash-trema-modul.html) от [iArduino.ru](https://iarduino.ru)**
+**Данная библиотека для Arduino IDE позволяет работать с [Trema-модулем Четырёхразрядный индикатор Flash-i2C](https://iarduino.ru/shop/Displei/chetyrehrazryadnyy-indikator-led-krasnyy-flash-i2c-trema-modul.html) от [iArduino.ru](https://iarduino.ru)**
 
 > Подробнее про установку библиотеки читайте в нашей [инструкции](https://wiki.iarduino.ru/page/Installing_libraries/).
 

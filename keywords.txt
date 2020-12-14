@@ -1,0 +1,42 @@
+#	####################################################
+#	СИНТАКСИЧЕСКАЯ РАСКРАСКА ДЛЯ БИБИЛИОТЕКИ:
+#	iarduino_I2C_4LED
+#	####################################################
+#	ТИПЫ ДАННЫХ:							   (KEYWORD1)
+	iarduino_I2C_4LED	KEYWORD1
+#	####################################################
+#	МЕТОДЫ И ФУНКЦИИ:						   (KEYWORD2)
+	begin	KEYWORD2
+	changeAddress	KEYWORD2
+	reset	KEYWORD2
+	getAddress	KEYWORD2
+	getVersion	KEYWORD2
+	getPullI2C	KEYWORD2
+	setPullI2C	KEYWORD2
+	scheme	KEYWORD2
+	fps	KEYWORD2
+	light	KEYWORD2
+	turn	KEYWORD2
+	clear	KEYWORD2
+	point	KEYWORD2
+	blink	KEYWORD2
+	frequ	KEYWORD2
+	setLED	KEYWORD2
+	print	KEYWORD2
+
+#	####################################################
+#	КОНСТАНТЫ:								   (LITERAL1)
+	LEN1	LITERAL1
+	LEN2	LITERAL1
+	LEN3	LITERAL1
+	LEN4	LITERAL1
+	TIME	LITERAL1
+	TEMP	LITERAL1
+	LEFT	LITERAL1
+	RIGHT	LITERAL1
+	POS1	LITERAL1
+	POS2	LITERAL1
+	POS3	LITERAL1
+	POS4	LITERAL1
+	LED_CA	LITERAL1
+	LED_CC	LITERAL1

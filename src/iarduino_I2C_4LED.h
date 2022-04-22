@@ -1,5 +1,5 @@
 //	Библиотека для работы с 4-зазрядным LED индикатором, I2C-flash для Arduino: https://iarduino.ru/shop/Displei/chetyrehrazryadnyy-indikator-led-krasnyy-flash-i2c-trema-modul.html
-//  Версия: 1.0.0
+//  Версия: 1.0.2
 //  Последнюю версию библиотеки Вы можете скачать по ссылке: https://iarduino.ru/file/536.html
 //  Подробное описание функций бибилиотеки доступно по ссылке: https://wiki.iarduino.ru/page/4-led-i2c/
 //  Библиотека является собственностью интернет магазина iarduino.ru и может свободно использоваться и распространяться!

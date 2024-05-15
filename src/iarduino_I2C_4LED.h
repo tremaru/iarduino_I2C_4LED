@@ -1,5 +1,5 @@
 //	Библиотека для работы с 4-зазрядным LED индикатором, I2C-flash для Arduino: https://iarduino.ru/shop/Displei/chetyrehrazryadnyy-indikator-led-krasnyy-flash-i2c-trema-modul.html
-//  Версия: 1.0.2
+//  Версия: 1.0.3
 //  Последнюю версию библиотеки Вы можете скачать по ссылке: https://iarduino.ru/file/536.html
 //  Подробное описание функций бибилиотеки доступно по ссылке: https://wiki.iarduino.ru/page/4-led-i2c/
 //  Библиотека является собственностью интернет магазина iarduino.ru и может свободно использоваться и распространяться!
@@ -17,7 +17,14 @@
 #include		<WProgram.h>																					//
 #endif																											//
 																												//
-#include		<iarduino_I2C_4LED_I2C.h>																		//	Подключаем файл iarduino_I2C_4LED_I2C.h - для работы с шиной I2C		(используя функции структуры iI2C)
+#include	"iarduino_I2C_4LED_I2C.h"																			//	Подключаем библиотеку выбора реализации шины I2C.
+																												//
+#if defined(TwoWire_h) || defined(__ARDUINO_WIRE_IMPLEMENTATION__) || defined(__AVR_ATmega328__) || defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(ESP32) || defined(ARDUINO_ARCH_RP2040) || defined(RENESAS_CORTEX_M4) // Если подключена библиотека Wire или платы её поддерживают...
+#include	<Wire.h>																							//	Разрешаем использовать библиотеку Wire в данной библиотеке.
+#endif																											//
+#if defined( iarduino_I2C_Software_h )																			//	Если библиотека iarduino_I2C_Software подключена в скетче...
+#include	<iarduino_I2C_Software.h>																			//	Разрешаем использовать библиотеку iarduino_I2C_Software в данной библиотеке.
+#endif																											//
 																												//
 #define			DEF_CHIP_ID_FLASH		0x3C																	//	ID линейки чипов - константа для всех чипов серии Flash (позволяет идентифицировать принадлежность чипа к серии).
 #define			DEF_CHIP_ID_METRO		0xC3																	//	ID линейки чипов - константа для всех чипов серии Metro (позволяет идентифицировать принадлежность чипа к серии).
@@ -82,10 +89,15 @@ class iarduino_I2C_4LED{																						//
 		iarduino_I2C_4LED							(uint8_t address=0){										//	Конструктор класса													(Параметр: адрес модуля на шине I2C, если не указан (=0), то адрес будет определён).
 													if(address>0x7F){ address>>=1; }							//	Корректируем адрес, если он указан с учётом бита RW.
 							valAddrTemp			=	address;													//	Сохраняем переданный адрес модуля.
-							objI2C				=	new iarduino_I2C;											//	Переопределяем указатель objI2C на объект производного класса iarduino_I2C.
+							selI2C				=	new iarduino_I2C_Select;									//	Переопределяем указатель selI2C на объект производного класса iarduino_I2C_Select.
 		}																										//
 	/**	Пользовательские функции **/																			//
-		bool				begin					(void				);										//	Объявляем  функцию инициализации модуля								(Параметр:  отсутствует).
+		#if defined(TwoWire_h) || defined(__ARDUINO_WIRE_IMPLEMENTATION__)										//
+		bool				begin					(TwoWire* i=&Wire ){ selI2C->begin(i); return _begin(); }	//	Определяем функцию инициализации модуля								(Параметр:  объект для работы с аппаратной шиной I2C).
+		#endif																									//
+		#if defined(iarduino_I2C_Software_h)																	//
+		bool				begin					(SoftTwoWire* i   ){ selI2C->begin(i); return _begin(); }	//	Определяем функцию инициализации модуля								(Параметр:  объект для работы с программной шиной I2C).
+		#endif																									//
 		bool				reset					(void				);										//	Объявляем  функцию перезагрузки модуля								(Параметр:  отсутствует).
 		bool				changeAddress			(uint8_t			);										//	Объявляем  функцию смены адреса модуля на шине I2C					(Параметр:  новый адрес модуля).
 		uint8_t				getAddress				(void				){ return valAddr;	}					//	Определяем функцию возвращающую текущий адрес модуля на шине I2C	(Параметр:  отсутствует).
@@ -101,45 +113,63 @@ class iarduino_I2C_4LED{																						//
 		void				blink					(uint8_t=255,bool=0	);										//	Объявляем  функцию установки    миганий разрядов					(Параметры: ПОЗИЦИЯ от 1 до 4 или 0 для двоеточия, СОСТОЯНИЕ 0/1).
 		void				frequ					(uint8_t			);										//	Объявляем  функцию установки    частоты мигания разрядов			(Параметр:	ЧАСТОТА от 1 до 4 Гц).
 		void				setLED					(uint8_t=0, uint8_t=0, uint8_t=0, uint8_t=0, bool=0);		//	Объявляем  функцию установки    светодиодов по битам				(Параметры: БАЙТ старшего разряда, БАЙТ, БАЙТ, БАЙТ младшего разряда, ФЛАГ двоеточия).
-		void				print					(    int16_t i,          int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle('0',j1,j2,j3,j4,j5); if(valType==TIME){_printNumT(i,j1);}else{_printNumI(i);}}
-		void				print					(    int16_t i, char j0, int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
-		void				print					(    int16_t i,          int j1    , char j0, int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
-		void				print					(    int16_t i,          int j1    ,          int j2    , char j0, int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
-		void				print					(    int16_t i,          int j1    ,          int j2    ,          int j3    , char j0, int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
-		void				print					(    int16_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    , char j0, int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
-		void				print					(    int16_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    ,          int j5,    char j0){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
-		void				print					(   uint16_t i,          int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle('0',j1,j2,j3,j4,j5); if(valType==TIME){_printNumT(int16_t(i),j1);}else{_printNumI(int16_t(i));}}
-		void				print					(   uint16_t i, char j0, int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(   uint16_t i,          int j1    , char j0, int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(   uint16_t i,          int j1    ,          int j2    , char j0, int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(   uint16_t i,          int j1    ,          int j2    ,          int j3    , char j0, int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(   uint16_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    , char j0, int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(   uint16_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    ,          int j5,    char j0){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(    int32_t i,          int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle('0',j1,j2,j3,j4,j5); if(valType==TIME){_printNumT(int16_t(i),j1);}else{_printNumI(int16_t(i));}}
-		void				print					(    int32_t i, char j0, int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(    int32_t i,          int j1    , char j0, int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(    int32_t i,          int j1    ,          int j2    , char j0, int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(    int32_t i,          int j1    ,          int j2    ,          int j3    , char j0, int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(    int32_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    , char j0, int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(    int32_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    ,          int j5,    char j0){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(   uint32_t i,          int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle('0',j1,j2,j3,j4,j5); if(valType==TIME){_printNumT(int16_t(i),j1);}else{_printNumI(int16_t(i));}}
-		void				print					(   uint32_t i, char j0, int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(   uint32_t i,          int j1    , char j0, int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(   uint32_t i,          int j1    ,          int j2    , char j0, int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(   uint32_t i,          int j1    ,          int j2    ,          int j3    , char j0, int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(   uint32_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    , char j0, int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(   uint32_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    ,          int j5,    char j0){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
-		void				print					(     double i,          int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle('0',j1,j2,j3,j4,j5); _printNumF(i);}
-		void				print					(     double i, char j0, int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumF(i);}
-		void				print					(     double i,          int j1    , char j0, int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumF(i);}
-		void				print					(     double i,          int j1    ,          int j2    , char j0, int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumF(i);}
-		void				print					(     double i,          int j1    ,          int j2    ,          int j3    , char j0, int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumF(i);}
-		void				print					(     double i,          int j1    ,          int j2    ,          int j3    ,          int j4    , char j0, int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumF(i);}
-		void				print					(     double i,          int j1    ,          int j2    ,          int j3    ,          int j4    ,          int j5,    char j0){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumF(i);}
-		void				print					(      char *i		){_sortStyle(' ',255,255,255,255,255);                                                                                                       _printNumS(i);}
-		void				print					(const char *i		){_sortStyle(' ',255,255,255,255,255); char j[10]; j[9]=0; for(uint8_t k=0; k<9; k++){j[k]=i[k]; if(i[k]==0){k=10;}}                         _printNumS(j);}
-		void				print					(     String i		){_sortStyle(' ',255,255,255,255,255); char j[10]; j[9]=0; for(uint8_t k=0; k<9; k++){j[k]=i[k]; if(i[k]==0){k=10;}}                         _printNumS(j);}
-		void				print					(      int i[]		){_sortStyle(' ',255,255,255,255,255);                                                                                                       _printNumA(i);}
+#ifdef RENESAS_CORTEX_M4
+		void				print					(         int i,          int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle('0',j1,j2,j3,j4,j5); if(valType==TIME){_printNumT(i,j1);}else{_printNumI(i);}}
+		void				print					(         int i, char j0, int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
+		void				print					(         int i,          int j1    , char j0, int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
+		void				print					(         int i,          int j1    ,          int j2    , char j0, int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
+		void				print					(         int i,          int j1    ,          int j2    ,          int j3    , char j0, int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
+		void				print					(         int i,          int j1    ,          int j2    ,          int j3    ,          int j4    , char j0, int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
+		void				print					(         int i,          int j1    ,          int j2    ,          int j3    ,          int j4    ,          int j5,    char j0){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
+		void				print					(unsigned int i,          int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle('0',j1,j2,j3,j4,j5); if(valType==TIME){_printNumT(int16_t(i),j1);}else{_printNumI(int16_t(i));}}
+		void				print					(unsigned int i, char j0, int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(unsigned int i,          int j1    , char j0, int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(unsigned int i,          int j1    ,          int j2    , char j0, int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(unsigned int i,          int j1    ,          int j2    ,          int j3    , char j0, int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(unsigned int i,          int j1    ,          int j2    ,          int j3    ,          int j4    , char j0, int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(unsigned int i,          int j1    ,          int j2    ,          int j3    ,          int j4    ,          int j5,    char j0){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+#else
+		void				print					(     int16_t i,          int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle('0',j1,j2,j3,j4,j5); if(valType==TIME){_printNumT(i,j1);}else{_printNumI(i);}}
+		void				print					(     int16_t i, char j0, int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
+		void				print					(     int16_t i,          int j1    , char j0, int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
+		void				print					(     int16_t i,          int j1    ,          int j2    , char j0, int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
+		void				print					(     int16_t i,          int j1    ,          int j2    ,          int j3    , char j0, int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
+		void				print					(     int16_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    , char j0, int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
+		void				print					(     int16_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    ,          int j5,    char j0){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(i);}
+		void				print					(    uint16_t i,          int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle('0',j1,j2,j3,j4,j5); if(valType==TIME){_printNumT(int16_t(i),j1);}else{_printNumI(int16_t(i));}}
+		void				print					(    uint16_t i, char j0, int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(    uint16_t i,          int j1    , char j0, int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(    uint16_t i,          int j1    ,          int j2    , char j0, int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(    uint16_t i,          int j1    ,          int j2    ,          int j3    , char j0, int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(    uint16_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    , char j0, int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(    uint16_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    ,          int j5,    char j0){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+#endif
+		void				print					(     int32_t i,          int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle('0',j1,j2,j3,j4,j5); if(valType==TIME){_printNumT(int16_t(i),j1);}else{_printNumI(int16_t(i));}}
+		void				print					(     int32_t i, char j0, int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(     int32_t i,          int j1    , char j0, int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(     int32_t i,          int j1    ,          int j2    , char j0, int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(     int32_t i,          int j1    ,          int j2    ,          int j3    , char j0, int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(     int32_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    , char j0, int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(     int32_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    ,          int j5,    char j0){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(    uint32_t i,          int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle('0',j1,j2,j3,j4,j5); if(valType==TIME){_printNumT(int16_t(i),j1);}else{_printNumI(int16_t(i));}}
+		void				print					(    uint32_t i, char j0, int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(    uint32_t i,          int j1    , char j0, int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(    uint32_t i,          int j1    ,          int j2    , char j0, int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(    uint32_t i,          int j1    ,          int j2    ,          int j3    , char j0, int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(    uint32_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    , char j0, int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(    uint32_t i,          int j1    ,          int j2    ,          int j3    ,          int j4    ,          int j5,    char j0){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumI(int16_t(i));}
+		void				print					(      double i,          int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle('0',j1,j2,j3,j4,j5); _printNumF(i);}
+		void				print					(      double i, char j0, int j1=255,          int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumF(i);}
+		void				print					(      double i,          int j1    , char j0, int j2=255,          int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumF(i);}
+		void				print					(      double i,          int j1    ,          int j2    , char j0, int j3=255,          int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumF(i);}
+		void				print					(      double i,          int j1    ,          int j2    ,          int j3    , char j0, int j4=255,          int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumF(i);}
+		void				print					(      double i,          int j1    ,          int j2    ,          int j3    ,          int j4    , char j0, int j5=255        ){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumF(i);}
+		void				print					(      double i,          int j1    ,          int j2    ,          int j3    ,          int j4    ,          int j5,    char j0){_sortStyle( j0,j1,j2,j3,j4,j5); _printNumF(i);}
+		void				print					(       char *i		){_sortStyle(' ',255,255,255,255,255);                                                                                                        _printNumS(i);}
+		void				print					( const char *i		){_sortStyle(' ',255,255,255,255,255); char j[10]; j[9]=0; for(uint8_t k=0; k<9; k++){j[k]=i[k]; if(i[k]==0){k=10;}}                          _printNumS(j);}
+		void				print					(      String i		){_sortStyle(' ',255,255,255,255,255); char j[10]; j[9]=0; for(uint8_t k=0; k<9; k++){j[k]=i[k]; if(i[k]==0){k=10;}}                          _printNumS(j);}
+		void				print					(         int i[]	){_sortStyle(' ',255,255,255,255,255);                                                                                                        _printNumA(i);}
+		void				print					( const   int i[]	){_sortStyle(' ',255,255,255,255,255);                                                                                                        _printNumA((int*)i);}
 	private:																									//
 	/**	Внутренние переменные **/																				//
 		uint8_t				valAddrTemp			=	0;															//	Определяем переменную для хранения адреса модуля на шине I2C который был указан, но не был проверен.
@@ -154,8 +184,9 @@ class iarduino_I2C_4LED{																						//
 		uint8_t				valType;																			//	DEC/HEX/TIME/TEMP     тип выводимого числа.
 		uint8_t				valPart;																			//	0,1,2,3,4,255         количество знаков после запятой, 255-не указано.
 		char				arrString[11];																		//	"X.X.:X.X."           строка символов для вывода на экран.
-		iarduino_I2C_BASE*	objI2C;																				//	Объявляем  указатель  на  объект полиморфного класса iarduino_I2C_BASE, но в конструкторе данного класса этому указателю будет присвоена ссылка на производный класс iarduino_I2C.
+		iarduino_I2C_VirtualSelect* selI2C;																		//	Объявляем  указатель  на  объект полиморфного класса iarduino_I2C_VirtualSelect, но в конструкторе текущего класса этому указателю будет присвоена ссылка на производный класс iarduino_I2C_Select.
 	/**	Внутренние функции **/																					//
+		bool				_begin					(void											);			//	Объявляем  функцию инициализации модуля								(Параметр:  отсутствует).
 		void				_writeData				(uint8_t, uint8_t								);			//	Объявляем  функцию вывода одного разряда							(Параметры: байт, позиция).
 		void				_writeData				(void											);			//	Объявляем  функцию вывода строки «arrString» на весь индикатор.		(Параметр:  отсутствует).
 		uint8_t				_codeSymbol				(char											);			//	Объявляем  функцию закодировать символ для его вывода				(Параметр:  символ).
